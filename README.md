@@ -523,33 +523,33 @@ loop:
 Drugi z programów zapewniał migotanie diody, którego jednak nie mogliśmy doświadczalnie zaobserwować z uwagi na fakt, że czas świecenia i nie świecenia wynosił przy różnych modyfikacjach wartości pod rejestrem `R0` kilkaset mikrosekund.
 ```asm
 org 0x00;
-    JMP main; bezwarunkowy skok pod etykietę "wait"
+    JMP main; bezwarunkowy skok pod etykietę "main"
 org 0x30;
 main:
     MOV P1, #0x55; binarnie: 0101 0101 - co druga dioda świeci w module 2
     CALL wait; wywołanie procedury "wait"
     MOV P1, #0xAA; binarnie: 1010 1010 - odwrócenie stanu wszystkich diod w module 2
     CALL wait; wywołanie procedury "wait"
-    JMP main; bezwarunkowy skok pod etykietę "wait"
+    JMP main; bezwarunkowy skok pod etykietę "main"
 wait:
     MOV R0, #200; wpisanie do rejestru R0 wartości 200 (dec) - adresowanie natychmiastowe (#)
 loop:
     DJNZ R0, loop; dekrementuj R0 i skocz do "loop" jeśli wynik różny od zera (2 cykle)
-    RET; powrót z procedury
+    RET; powrót z procedury (podprogramu)
 ```
 
 ### 1.3 - Migotanie diody z częstotliwością 1 Hz
 Trzeci z programów umożliwiał już dostrzeżenie zmiany stanu diody. Fragment "main" pozostał taki sam jednak do "wydłużenia" oczekiwania wewnątrz etykiety wait dodałem zagnieżdżone pętle wykorzystując instrukcje `DJNZ`.
 ```asm
 org 0x00;
-    JMP main; bezwarunkowy skok pod etykietę "wait"
+    JMP main; bezwarunkowy skok pod etykietę "main"
 org 0x30;
 main:
     MOV P1, #0x55; binarnie: 0101 0101 - co druga dioda świeci w module 2
     CALL wait; wywołanie procedury "wait"
     MOV P1, #0xAA; binarnie: 1010 1010 - odwrócenie stanu wszystkich diod w module 2
     CALL wait; wywołanie procedury "wait"
-    JMP main; bezwarunkowy skok pod etykietę "wait"
+    JMP main; bezwarunkowy skok pod etykietę "main"
 wait:
     MOV R0, #63; wpisanie do rejestru R0 wartości 63 (dec) - adresowanie natychmiastowe (#)
 loop1:
@@ -560,25 +560,91 @@ loop3:
     DJNZ R2, loop3; "dekrementuj R0 i skocz do "loop3" jeśli wynik różny od zera" (2 cykle)
     DJNZ R1, loop2; "dekrementuj R1 i skocz do "loop2" jeśli wynik różny od zera" (2 cykle)
     DJNZ R0, loop1; "dekrementuj R2 i skocz do "loop1" jeśli wynik różny od zera" (2 cykle)
-    RET; powrót z procedury
+    RET; powrót z procedury (podprogramu)
 ```
 
 ### 2.1 - Migotanie diody na podstawie przerwań
-Opis
+Działanie programu analogiczne do przykładu 1.2 ulepszone o obsługę przerwań.
 ```asm
-Kod źródłowy
+org 0x00;
+    JMP init;
+org 0x0B;
+    JMP irq;
+org 0x30;
+init:
+    MOV TMOD, #0x01; określenie pracy timera T0 jako 16-bitowy
+    MOV TH0, #0x00; ustawienie wartości bardziej znaczącego bajta timera
+    MOV TL0, #0x00; ustawienie wartości mniej znaczącego bajta timera
+    SETB EA; zezwolenie na globalne przerwania
+    SETB ET0; zezwolenie na przerwania pochodzące od timera T0
+    SETB TR0; dołączenie sygnału do timera T0
+main:
+    JMP main;
+irq:
+    CPL P1.1; odwórcenie bitu, czyli stanu diody
+    RETI; powrót z procedury obsługi przerwania
 ```
 
 ### 2.2 - Migotanie diody na podstawie przerwań z zadaną częstotliwością
-Opis
+Działanie programu analogiczne do przykładu 1.3 ulepszone o obsługę przerwań. W tym programie należało jednak wymyślić sposób w jaki sposób dobrać wartości `TL0`, `TH0` oraz `R0`, aby częstotliwość mrugania diody wynosiła 1 [Hz]. W moim przypadku procedura obliczeń była następująca: dioda ma się świecić przez 0,5 [s] oraz przez takim sam nie świecić. Wobec tego: `0,5 [s] / x = 1,2 [us]`. Przekształcając względem x: `x = 0,5 / (1,2 * 10 ^ (-6)) = 416 666 ` cykli. Wybieram liczbę najbardziej zbliżoną do `416 666`, której dzielnik nie jest większy niż `255`, bo na taką wartość pozwala nam rejest. W moim przypadku jest to liczba `416 664`, zaś dzieląc ją przez `24` otrzymujemy `17 361`. Od maksymalnej liczby odejmuję umieszczoną w rejestrze wartość, czyli: `65 535 - 17 361 = 48 174`. Pozostaje zamienić ją na postać szesnastkową tj. `BC2E`. `BC` wpisujemy do `TH0`, zaś `2E` do `TL0`. Implementacja tego zadania została umieszczona poniżej:
 ```asm
-Kod źródłowy
+org 0x00;
+    JMP init;
+org 0x0B;
+    JMP irq;
+org 0x30;
+init:
+    MOV TMOD, #0x01; określenie pracy timera T0 jako 16-bitowy
+    MOV TH0, #0xBC; ustawienie wartości bardziej znaczącego bajta timera
+    MOV TL0, #0x2E; ustawienie wartości mniej znaczącego bajta timera
+    MOV R0, #24; wpisanie do rejestru R0 wartości 24 (dec) - adresowanie natychmiastowe (#)
+    SETB EA; zezwolenie na globalne przerwania
+    SETB ET0; zezwolenie na przerwania pochodzące od timera T0
+    SETB TR0; dołączenie sygnału do timera T0
+main:
+    JMP main;
+irq:
+    MOV TH0, #0xBC; ustawienie wartości bardziej znaczącego bajta timera
+    MOV TL0, #0x2E; ustawienie wartości mniej znaczącego bajta timera
+    DJNZ R0, end; "dekrementuj R0 i skocz do "end" jeśli wynik różny od zera" (2 cykle)
+    CPL P1.1; odwórcenie bitu, czyli stanu diody
+    MOV R0, #24; wpisanie do rejestru R0 wartości 24 (dec) - adresowanie natychmiastowe (#)
+end:
+    RETI; powrót z procedury obsługi przerwania
+
 ```
 
 ### 2.3 - Wypełnienie PWM o współczynniku jednej dziesiątej
-Opis
+Współczynnik wypełnienia wynosi 10%, co oznacza, że przez 90% dioda nie świeci. W labolatorium efekt był zauważalny poniżej 20% lub przy odizolowaniu światła poprzez rzucanie cienia na moduł z diodami.
 ```asm
-Kod źródłowy
+org 0x00;
+    JMP init
+org 0x0B;
+    JMP irq;
+org 0x30;
+init:
+    MOV TMOD, #0x01;  określenie pracy timera T0 jako 16-bitowy
+    MOV TH0, #0xFC; ustawienie wartości bardziej znaczącego bajta timera
+    MOV TL0, #0xED; ustawienie wartości mniej znaczącego bajta timera
+    SETB EA; zezwolenie na globalne przerwania
+    SETB ET0; zezwolenie na przerwania pochodzące od timera T0
+    SETB TR0; dołączenie sygnału do timera T0
+    MOV R0, #01; liczba cykli o stanie niskim, które pozostały
+    MOV R1, #09; liczba cykli o stanie wysokim, które pozostały
+main:
+    JMP main;
+irq:
+    MOV TH0, #0xFC;
+    MOV TL0, #0xED;
+    DJNZ R0, end;
+    MOV A, R1;
+    MOV R0, A;
+    MOV A, #10; przenoszenie ilości, jakie mają się wykonać
+    SUBB A, R0; odejmowanie wskazanego argumentu od zawartości akumulatora
+    MOV R1, A;
+    CPL P1.1; zmiana stanu diody na przeciwny
+end:
+    RETI; powrót z procedury obsługi przerwania
 ```
 
 ### 3.1 - Konfiguracja portu szeregowego z wysyłaniem znaku
