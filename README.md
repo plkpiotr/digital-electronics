@@ -2,12 +2,12 @@
 ## Programowanie FPGA
 
 ## Piotr Pałka - poniedziałek 9:30, podgrupa 2
-Dokument ten zawiera podsumowanie zajęć elektroniki cyfrowej z części dotyczącej języka VHDL. Każdy z umieszczonych niżej programów został opatrzony nagłówkiem składającym się kolejno z: numeru zajęć odnoszących się do bezpośrednio programowalnej macierzy bramek, numeru określającego kolejność wykonania programu na zajęciach oraz jego tytuł. Tam gdzie było to niezbędne dodany został również opis programu zawierający wnioski oraz komenatrze zamieszczone bezpośrednio w poszczególnych fragmentach kodu.
+Dokument ten zawiera podsumowanie zajęć elektroniki cyfrowej z części dotyczącej języka VHDL. Każdy z umieszczonych niżej programów został opatrzony nagłówkiem składającym się kolejno z: numeru zajęć odnoszących się do bezpośrednio programowalnej macierzy bramek, numeru określającego kolejność wykonania programu na zajęciach oraz jego tytuł. Każdy z programów zawiera krótki opis zawierający wnioski i przemyślenia oraz tam gdzie było to niezbędne zamieściłem komentarze bezpośrednio w kodzie.
 
 ### 1.1 - Konfiguracja wstępna
 Pierwszą czynnością na stanowisku z płytką FPGA było stworzenia projektu w środowisku programistycznym Vivado zgodnie z konspektem zamieszczonym na platformie uczelnianej UPEL. Niezbędnym plikiem do obsługi programowalnej macierzy bramek był plik `Nexys4DDR_Master.xdc` umożliwiający nam określenie, z których elementów będziemy korzystać. Poniżej zamieściłem fragment niezmodyfikowanego, wyżej wspomnianego pliku.
 ```bash
-set_property -dict { PACKAGE_PIN T10   IOSTANDARD LVCMOS33 } [get_ports { CA }]; #IO_L24N_T3_A00_D16_14 Sch=ca
+#set_property -dict { PACKAGE_PIN T10   IOSTANDARD LVCMOS33 } [get_ports { CA }]; #IO_L24N_T3_A00_D16_14 Sch=ca
 #set_property -dict { PACKAGE_PIN R10   IOSTANDARD LVCMOS33 } [get_ports { CB }]; #IO_25_14 Sch=cb
 #set_property -dict { PACKAGE_PIN K16   IOSTANDARD LVCMOS33 } [get_ports { CC }]; #IO_25_15 Sch=cc
 #set_property -dict { PACKAGE_PIN K13   IOSTANDARD LVCMOS33 } [get_ports { CD }]; #IO_L17P_T2_A26_15 Sch=cd
@@ -20,7 +20,7 @@ set_property -dict { PACKAGE_PIN T10   IOSTANDARD LVCMOS33 } [get_ports { CA }];
 ### 1.2 - Przygotowanie pliku .xdc
 Aby wskazać podzespoły wykorzystywane w naszym projekcie należało odkomentować (usuwając znak `#`) te, których będziemy używać. W celu ułatwienia pracy na segmentach wyświetlacza zdecydowałem się na zmianę nomenklatury dotyczącej wyświetlacza. Od tej pory zamiast odwoływać się pojedynczo do poszczególnych katod cały segment zawarty jest w jednym słowie. Ułatwi to w przyszłości zakodowanie cyfry.
 ```bash
-#set_property -dict { PACKAGE_PIN T10   IOSTANDARD LVCMOS33 } [get_ports { SEG[0] }]; #IO_L24N_T3_A00_D16_14 Sch=ca
+set_property -dict { PACKAGE_PIN T10   IOSTANDARD LVCMOS33 } [get_ports { SEG[0] }]; #IO_L24N_T3_A00_D16_14 Sch=ca
 set_property -dict { PACKAGE_PIN R10   IOSTANDARD LVCMOS33 } [get_ports { SEG[1] }]; #IO_25_14 Sch=cb
 set_property -dict { PACKAGE_PIN K16   IOSTANDARD LVCMOS33 } [get_ports { SEG[2] }]; #IO_25_15 Sch=cc
 set_property -dict { PACKAGE_PIN K13   IOSTANDARD LVCMOS33 } [get_ports { SEG[3] }]; #IO_L17P_T2_A26_15 Sch=cd
@@ -31,7 +31,7 @@ set_property -dict { PACKAGE_PIN L18   IOSTANDARD LVCMOS33 } [get_ports { SEG[6]
 set_property -dict { PACKAGE_PIN H15   IOSTANDARD LVCMOS33 } [get_ports { SEG[7] }]; #IO_L19N_T3_A21_VREF_15 Sch=dp
 ```
 ### 1.3 - Uzależnienie diód od switchy
-Pierwszym zadaniem na zajęciach było uzależnienie diód od switchy, w taki sposób by stan kolejnych przełączników definiowały świecenie odpowiadających im diód. Dzięki równoległemu programowaniu przerzucamy po prostu wartość słowa `SW` na wartość słowa `LED`.
+Pierwszym zadaniem na zajęciach było uzależnienie diód od switchy, w taki sposób by stan kolejnych przełączników definiował świecenie odpowiadających im diód. Dzięki równoległemu wykonywaniu instrukcji przypisujemy po prostu wartość sygnału ze słowa `SW` do słowa `LED`.
 ```vhdl
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -47,7 +47,7 @@ begin
 end behavioral;
 ```
 ### 1.4 - Wyświetlenie jedynki
-Opis
+Kolejne ćwiczenie polegało na wyświetleniu cyfry zgodnej z numerem stanowiska. W moim przypadku była to cyfra 1. W tym celu należało wykorzystać dwa słowa: `AN` oraz `SEG`, pamiętając o uprzednim odkomentowaniu ich składowych w pliku `.xdc`. `AN` mówi nam którego lub których z ośmiu wyświetlaczy chcemy użyć (stan niski, czyli `0` określa pracę wyświetlacza), zaś `SEG` definiowało nam, które segmenty wyświetlacza mają być aktywne (tutaj stan wysoki, czy `1` definiowało pracę segmentu).
 ```vhdl
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -59,7 +59,7 @@ end displayOne;
 
 architecture behavioral of displayOne is
 begin
-    SEG <= "11111001"; -- komentarz :)
+    SEG <= "11111001";
     AN <= "11111110";
 end behavioral;
 ```
@@ -107,7 +107,7 @@ Kod źródłowy
 ## Programowanie mikrokontrolerów
 
 ## Piotr Pałka - poniedziałek 9:30, podgrupa 2
-Dokument ten zawiera podsumowanie zajęć elektroniki cyfrowej z części dotyczącej języka Assembly oraz języka C. Każdy z umieszczonych niżej programów został opatrzony nagłówkiem składającym się kolejno z: numeru zajęć odnoszących się do mikrokontrolera 8051 lub STM32, numeru określającego kolejność wykonania programu na zajęciach oraz jego tytuł. Tam gdzie było to niezbędne dodany został również opis programu zawierający wnioski oraz komenatrze zamieszczone bezpośrednio w poszczególnych fragmentach kodu.
+Dokument ten zawiera podsumowanie zajęć elektroniki cyfrowej z części dotyczącej języka Assembly oraz języka C. Każdy z umieszczonych niżej programów został opatrzony nagłówkiem składającym się kolejno z: numeru zajęć odnoszących się do mikrokontrolera 8051 lub STM32, numeru określającego kolejność wykonania programu na zajęciach oraz jego tytuł. Każdy z programów zawiera krótki opis zawierający wnioski i przemyślenia oraz tam gdzie było to niezbędne zamieściłem komentarze bezpośrednio w kodzie.
 
 ### 1.1 - Przykładowy program zapalający wybrane diody
 Opis
