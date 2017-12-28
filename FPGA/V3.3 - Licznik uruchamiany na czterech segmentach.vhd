@@ -14,7 +14,7 @@ architecture behavioral of displayCharacters is
     shared variable bcd3 : STD_LOGIC_VECTOR (3 downto 0) := "0000";
     shared variable bcd4 : STD_LOGIC_VECTOR (3 downto 0) := "0000";
 
-    procedure convert (
+    procedure convert ( -- pełna procedura przekodowania cyfr od 0 do 9
         variable input : in STD_LOGIC_VECTOR (3 downto 0);
         signal output : out STD_LOGIC_VECTOR (6 downto 0)) is
     begin
@@ -35,7 +35,7 @@ architecture behavioral of displayCharacters is
 
 begin
 
-    process (CLK100MHZ)
+    process (CLK100MHZ) -- proces wykorzystywany do "równoczesnego" wyświetlania
         variable counter: INTEGER := 0;
     begin
         if (rising_edge(CLK100MHZ)) then
@@ -61,7 +61,7 @@ begin
         end if;      
     end process;
     
-    process (CLK100MHZ)
+    process (CLK100MHZ) -- proces związany z obsługą licznika tzn. inkrementacją wartości
         variable counter1: INTEGER := 0;
         variable counter2: INTEGER := 0;
         variable counter3: INTEGER := 0;

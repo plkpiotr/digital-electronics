@@ -20,7 +20,7 @@ begin
                 cnt := cnt + 1;
                 LED <= (others => '1'); -- przypisanie stanu wysokiego na wszystkie diody
             else 
-                cnt := 0; -- rozpoczęcie odliczania w prescalerze
+                cnt := 0; -- rozpoczęcie odliczania w prescalerze od początku
             end if;
         end if;
     end process;
