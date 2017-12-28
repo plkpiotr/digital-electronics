@@ -43,7 +43,7 @@ end diodesAndSwitches;
 
 architecture behavioral of diodesAndSwitches is
 begin
-    LED <= SW;
+    LED <= SW; -- przypisanie wartości sygnału ze switchy na diody
 end behavioral;
 ```
 ### 1.4 - Wyświetlenie jedynki
@@ -135,29 +135,236 @@ end behavioral;
 
 ```
 ### 2.2 - Licznik binarny
-Prosty licznik binarny napisany od zera na drugich zajęciach. Do jego realizacji potrzebowaliśmy sygnału `cnt`, którego rozmiar (u mnie 27 bitów) odpowiadała za zliczanie z częstotliwością jak najbardziej zbliżoną do 1 [Hz]. Zależność ta wynika z ilorazu 100 [Mhz] tzn. częstotliwości wbudowanej i `2^(n+1)`, którego wynikiem jest 1 [Hz], a szukaną wartością `n`. Warto zaznaczyć, że w kodzie zaczęła pojawiać się instrukcja `use IEEE.STD_LOGIC_UNSIGNED.ALL;` umożliwiająca "dodawanie" jedynki do słowa binarnego.
+Prosty licznik binarny napisany od zera na drugich zajęciach. Do jego realizacji potrzebowaliśmy sygnału `cnt`, którego rozmiar (u mnie 27 bitów) odpowiadała za zliczanie z częstotliwością jak najbardziej zbliżoną do 1 [Hz]. Zależność ta wynika z ilorazu 100 [Mhz] tzn. częstotliwości wbudowanej i `2^(n+1)`, którego wynikiem jest 1 [Hz], a szukaną wartością `n`. Dzięki temu ostatni z wyświetlanych bitów będzie świecił z pożądaną częstotliwością. Warto zaznaczyć, że w kodzie zaczęła pojawiać się instrukcja `use IEEE.STD_LOGIC_UNSIGNED.ALL;` umożliwiająca "dodawanie" jedynki do słowa binarnego.
 ```vhdl
-Kod źródłowy
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity secondCounter is
+    port (CLK100MHZ : in STD_LOGIC;
+          LED : out STD_LOGIC_VECTOR (15 downto 0));
+end secondCounter;
+
+architecture behavioral of secondCounter is                                    
+signal cnt : STD_LOGIC_VECTOR (26 downto 0) := "000000000000000000000000000";        
+begin
+    process(CLK100MHZ, cnt)
+    begin
+        if (rising_edge(CLK100MHZ)) then
+            cnt <= cnt + 1; -- operacja możliwa dzięki STD_LOGIC_UNSIGNED.ALL
+        end if;
+    end process;
+    LED <= cnt (26 downto 11); -- wyświetlenie 16 najstarszych bitów
+end behavioral;
 ```
 ### 2.3 - Licznik binarny z prescalerem
-Opis
+Modyfikacja poprzedniego programu z powodu wprowadzenia prescalera i zastąpienia sygnału zmienną. Ponadto kod ten powoduje "migotanie" wszystkich diod naraz z częstotliwością 1 [Hz], bez możliwości podglądu stanu licznika na diodach. Stan świecenia i nie świecenia trwający po 0,5 [s] każdy - analogia do programu 2.1.
 ```vhdl
-Kod źródłowy
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.all;
+
+entity thirdCounter is
+    port (CLK100MHZ : in STD_LOGIC;
+          LED : out STD_LOGIC_VECTOR (15 downto 0));
+end thirdCounter;
+
+architecture behavioral of thirdCounter is
+begin
+    process(CLK100MHZ)
+    variable cnt: INTEGER := 0;
+    begin
+        if (rising_edge(CLK100MHZ)) then
+            if (cnt < 50000000) then     
+                cnt := cnt + 1;
+                LED <= (others => '0'); -- przypisanie stanu niskiego na wszystkie diody
+            elsif (cnt < 100000000) then
+                cnt := cnt + 1;
+                LED <= (others => '1'); -- przypisanie stanu wysokiego na wszystkie diody
+            else 
+                cnt := 0; -- rozpoczęcie odliczania w prescalerze
+            end if;
+        end if;
+    end process;
+end behavioral;
 ```
 ### 2.4 - Licznik binarny z resetem
-Opis
+Ostatnia zmiana polegała na sprawdzeniu działania funkcji resetu. Wykorzystałem do niej drugą wersję programu 2.2 - modyfikacja polegała wyłącznie na dodaniu opcji zresetowania z poziomu switcha tzn. wartość bitu równa `1` rozpoczynała zliczanie od początku. Na wyjściu otrzymywaliśmy stan licznika, gdzie najmłodszy bit "świecił" z częstotliwością 1 [Hz].
 ```vhdl
-Kod źródłowy
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity fourthCounter is
+    port (CLK100MHZ : in STD_LOGIC;
+          SW : inout STD_LOGIC;
+          LED : out STD_LOGIC_VECTOR (15 downto 0));
+end fourthCounter;
+
+architecture behavioral of fourthCounter is                                    
+signal cnt : STD_LOGIC_VECTOR (26 downto 0) := "000000000000000000000000000";        
+begin
+    process(CLK100MHZ, cnt)
+    begin
+        if (rising_edge(CLK100MHZ)) then
+            if (SW = '1') then  -- sprawdzanie czy funkcja resetu jest uruchomiona
+                cnt <= "000000000000000000000000000"; -- zliczanie od zera
+            else
+                cnt <= cnt + 1;
+            end if;
+        end if;
+    end process;
+    LED <= cnt (26 downto 11);
+end behavioral;
 ```
 ### 3.1 - Dynamiczne wyświetlanie czterech znaków
-Opis
+Na trzecich zajęciach swoją pracę rozpoczęliśmy od dynamicznego wyświetlania czterech znaków - innymi słowy przemiennego wyświeltania czterech znaków na odpowiadających każdemu z nich wyświetlaczowi z tak wysoką częstotliwością aby obserwator mógł widzieć je wszystkie "naraz". Do wykonania tego zadania potrzebowaliśmy procedury konwertującej z zapisu BCD w celu uproszczenia kododwania znaków oraz procesu, który wystarczająco szybko potrafiłby "przerzucać" wyświetlanie na kolejne segmenty. Zgodnie z dobranymi wartościami każdy ze znaków wyświetlany jest przez 2,5 [ms] - częstotliwość 400 [Hz] zapewnia, że dane na wyświetlaczach będą widoczne równocześnie.
 ```vhdl
-Kod źródłowy
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+entity displayCharacters is
+    Port (CLK100MHZ: in STD_LOGIC;
+          AN : out STD_LOGIC_VECTOR (7 downto 0);  -- słowo odpowiadające za wyświetlacze   
+          SEG: out STD_LOGIC_VECTOR (6 downto 0)); -- słowo odpowiadające za segmenty (bez kropki)
+end displayCharacters;
+
+architecture behavioral of displayCharacters is
+    signal bcd: STD_LOGIC_VECTOR(3 downto 0) := "0000";      -- sygnał odpowiadający za wyświetlanie znaku
+    constant three : STD_LOGIC_VECTOR(3 downto 0) := "0011"; -- zdefiniowanie stałych w kodzie BCD
+    constant five : STD_LOGIC_VECTOR(3 downto 0) := "0101";
+    constant a : STD_LOGIC_VECTOR(3 downto 0) := "1010";
+    constant b : STD_LOGIC_VECTOR(3 downto 0) := "1011";
+
+    procedure convert (
+        signal input : in STD_LOGIC_VECTOR (3 downto 0);     -- 4-bitowe wejście w kodzie BCD
+        signal output: out STD_LOGIC_VECTOR (6 downto 0)) is -- 7-bitowe wyjście (segmenty bez kropki)
+    begin
+        case input is
+            when three => output <= "0110000";  -- wyświetlanie trójki
+            when five => output <= "0010010";   -- wyświetlanie piątki
+            when a => output <= "0001000";      -- wyświetlanie litery a
+            when b => output <= "0000011";      -- wyświetlanie litery b
+            when others => output <= "1111111";
+        end case;
+    end convert;
+
+begin
+    process (CLK100MHZ)
+        variable counter: INTEGER := 0;
+    begin
+        if (rising_edge(CLK100MHZ)) then
+            if (counter < 250_000) then
+                counter := counter + 1;
+                bcd <= "0011"; -- uruchomienie segementów, by wyświetlały trójkę
+                convert(bcd, SEG);
+                AN <= "11111110"; -- uruchomienie pierwszego wyświetlacza od lewej
+            elsif (counter < 500_000) then
+                counter := counter + 1;
+                bcd <= "0101"; -- uruchomienie segmentów, by wyświetlały piątkę
+                convert(bcd, SEG);
+                AN <= "11111101"; -- uruchomienie drugiego wyświetlacza od lewej
+            elsif (counter < 750_000) then
+                counter := counter + 1;
+                bcd <= "1010"; -- uruchomienie segmentów, by wyświetlały literę a
+                convert(bcd, SEG);
+                AN <= "11111011"; -- uruchomienie trzeciego wyświetlacza od lewej
+            elsif (counter < 1_000_000) then
+                counter := counter + 1;
+                bcd <= "1011"; -- uruchomienie segmentów, by wyświetlały literę b
+                convert(bcd, SEG);
+                AN <= "11110111"; -- uruchomienie czwartego wyświetlacza od lewej
+            else
+                counter := 0;
+            end if;
+        end if;      
+    end process;
+end behavioral;
 ```
 ### 3.2 - Dynamiczne wyświetlanie dzięki procedurze przekodowania
-Opis
+Ten program był modyfikacją poprzedniego wynikającą z wyświetlania ośmiu znaków zamiast czterech, stąd nie powielałem komentarzy w poniższych wierszach, aby zachować przejrzystość kodu. Czas wyświetlania jednego znaku w tym przypadku wynosił 1,25 [ms], co również umożliwiło równoczesne obserwowanie każdej z liczb.
 ```vhdl
-Kod źródłowy
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+entity displayNumbers is
+    Port (CLK100MHZ: in STD_LOGIC;
+          AN : out STD_LOGIC_VECTOR (7 downto 0);    
+          SEG : out STD_LOGIC_VECTOR (6 downto 0));
+end displayNumbers;
+
+architecture behavioral of displayNumbers is
+    signal bcd : STD_LOGIC_VECTOR(3 downto 0) := "0000";
+
+    procedure convert (
+        signal input : in STD_LOGIC_VECTOR (3 downto 0);
+        signal output: out STD_LOGIC_VECTOR (6 downto 0)) is
+    begin
+        case input is
+            when "0000" => output <= "1000000";
+            when "0001" => output <= "1111001";
+            when "0010" => output <= "0100100";
+            when "0011" => output <= "0110000";
+            when "0100" => output <= "0011001";
+            when "0101" => output <= "0010010";
+            when "0110" => output <= "0000010";
+            when "0111" => output <= "1011000";
+            when others => output <= "1111111";
+        end case;
+    end convert;
+
+begin
+    process (CLK100MHZ)
+        variable counter: INTEGER := 0;
+    begin
+        if (rising_edge(CLK100MHZ)) then
+            if (counter < 125_000) then
+                counter := counter + 1;
+                bcd <= "0000";
+                convert(bcd, SEG);
+                AN <= "11111110";
+            elsif (counter < 250_000) then
+                counter := counter + 1;
+                bcd <= "0001";
+                convert(bcd, SEG);
+                AN <= "11111101";
+            elsif (counter < 375_000) then
+                counter := counter + 1;
+                bcd <= "0010";
+                convert(bcd, SEG);
+                AN <= "11111011";
+            elsif (counter < 500_000) then
+                counter := counter + 1;
+                bcd <= "0011";
+                convert(bcd, SEG);
+                AN <= "11110111";
+            elsif (counter < 625_000) then
+                counter := counter + 1;
+                bcd <= "0100";
+                convert(bcd, SEG);
+                AN <= "11101111";
+            elsif (counter < 750_000) then
+                counter := counter + 1;
+                bcd <= "0101";
+                convert(bcd, SEG);
+                AN <= "11011111";
+            elsif (counter < 875_000) then
+                counter := counter + 1;
+                bcd <= "0110";
+                convert(bcd, SEG);
+                AN <= "10111111";
+            elsif (counter < 1_000_000) then
+                counter := counter + 1;
+                bcd <= "0111";
+                convert(bcd, SEG);
+                AN <= "01111111";
+            else
+                counter := 0;
+            end if;
+        end if;      
+    end process;
+end behavioral;
 ```
 ### 3.3 - Licznik uruchamiany na czterech segmentach
 Opis

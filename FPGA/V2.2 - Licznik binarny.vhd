@@ -13,8 +13,8 @@ begin
     process(CLK100MHZ, cnt)
     begin
         if (rising_edge(CLK100MHZ)) then
-            cnt <= cnt + 1;
+            cnt <= cnt + 1; -- operacja możliwa dzięki STD_LOGIC_UNSIGNED.ALL
         end if;
     end process;
-    LED <= cnt (26 downto 11);
+    LED <= cnt (26 downto 11); -- wyświetlenie 16 najstarszych bitów
 end behavioral;

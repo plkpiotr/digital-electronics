@@ -14,8 +14,8 @@ begin
     process(CLK100MHZ, cnt)
     begin
         if (rising_edge(CLK100MHZ)) then
-            if (SW = '1') then
-                cnt <= "000000000000000000000000000";
+            if (SW = '1') then  -- sprawdzanie czy funkcja resetu jest uruchomiona
+                cnt <= "000000000000000000000000000"; -- zliczanie od zera
             else
                 cnt <= cnt + 1;
             end if;

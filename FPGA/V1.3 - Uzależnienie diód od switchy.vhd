@@ -8,5 +8,5 @@ end diodesAndSwitches;
 
 architecture behavioral of diodesAndSwitches is
 begin
-    LED <= SW;
+    LED <= SW;  -- przypisanie wartości sygnału ze switchy na diody
 end behavioral;
