@@ -30,8 +30,8 @@ set_property -dict { PACKAGE_PIN L18   IOSTANDARD LVCMOS33 } [get_ports { SEG[6]
 
 set_property -dict { PACKAGE_PIN H15   IOSTANDARD LVCMOS33 } [get_ports { SEG[7] }]; #IO_L19N_T3_A21_VREF_15 Sch=dp
 ```
-### 1.3 - Uzależnienie diód od switchy
-Pierwszym zadaniem na zajęciach było uzależnienie diód od switchy, w taki sposób by stan kolejnych przełączników definiował świecenie odpowiadających im diód. Dzięki równoległemu wykonywaniu instrukcji przypisujemy po prostu wartość sygnału ze słowa `SW` do słowa `LED`.
+### 1.3 - Uzależnienie diod od switchy
+Pierwszym zadaniem na zajęciach było uzależnienie diod od switchy, w taki sposób by stan kolejnych przełączników definiował świecenie odpowiadających im diod. Dzięki równoległemu wykonywaniu instrukcji przypisujemy po prostu wartość sygnału ze słowa `SW` do słowa `LED`.
 ```vhdl
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -47,7 +47,7 @@ begin
 end behavioral;
 ```
 ### 1.4 - Wyświetlenie jedynki
-Kolejne ćwiczenie polegało na wyświetleniu cyfry zgodnej z numerem stanowiska. W moim przypadku była to cyfra 1. W tym celu należało wykorzystać dwa słowa: `AN` oraz `SEG`, pamiętając o uprzednim odkomentowaniu ich składowych w pliku `.xdc`. `AN` mówi nam którego lub których z ośmiu wyświetlaczy chcemy użyć (stan niski, czyli `0` określa pracę wyświetlacza), zaś `SEG` definiowało nam, które segmenty wyświetlacza mają być aktywne (tutaj stan wysoki, czy `1` definiowało pracę segmentu).
+Kolejne ćwiczenie polegało na wyświetleniu cyfry zgodnej z numerem stanowiska. W moim przypadku była to cyfra 1. W tym celu należało wykorzystać dwa słowa: `AN` oraz `SEG`, pamiętając o uprzednim odkomentowaniu ich składowych w pliku `.xdc`. `AN` mówi nam którego lub których z ośmiu wyświetlaczy chcemy użyć (stan niski, czyli `0` określa pracę wyświetlacza), zaś `SEG` definiowało nam, który lub które segmenty wyświetlacza mają być aktywne (tutaj stan wysoki, czy `1` definiowało pracę segmentu).
 ```vhdl
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -59,8 +59,8 @@ end displayOne;
 
 architecture behavioral of displayOne is
 begin
-    SEG <= "11111001";
-    AN <= "11111110";
+    SEG <= "11111001"; -- określenie działających segmentów wyświetlacza
+    AN <= "11111110"; -- określenie działającego wyświetlacza
 end behavioral;
 ```
 ### 1.5 - Układ bramek logicznych
