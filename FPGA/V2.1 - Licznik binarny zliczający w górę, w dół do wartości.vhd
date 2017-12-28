@@ -64,13 +64,13 @@ begin
     process(CLK1HZ, SW)
     begin
         if (rising_edge(CLK1HZ)) then
-            if (SW = '0' AND  counter > "10101010") then    -- count down to 10101010
+            if (SW = '0' AND  counter > "10101010") then      -- count down to 10101010
                 counter <= counter - 1;
             elsif (SW = '0' AND counter = "10101010") then    -- reach min value
                 counter <= "11111111";
-            elsif (SW = '1' AND counter < "10101010") then     -- count up to 10101010
+            elsif (SW = '1' AND counter < "10101010") then    -- count up to 10101010
                 counter <= counter + 1;
-            else                                            -- reach max value
+            else                                              -- reach max value
                 counter <= "00000000";
             end if;
         end if;
