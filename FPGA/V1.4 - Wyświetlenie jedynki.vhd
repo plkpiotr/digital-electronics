@@ -8,6 +8,6 @@ end displayOne;
 
 architecture behavioral of displayOne is
 begin
-    SEG <= "11111001";
-    AN <= "11111110";
+    SEG <= "11111001"; -- określenie działających segmentów wyświetlacza stanami wysokimi
+    AN <= "11111110"; -- określenie działającego wyświetlacza stanem niskim
 end behavioral;

@@ -59,22 +59,83 @@ end displayOne;
 
 architecture behavioral of displayOne is
 begin
-    SEG <= "11111001"; -- określenie działających segmentów wyświetlacza
-    AN <= "11111110"; -- określenie działającego wyświetlacza
+    SEG <= "11111001"; -- określenie działających segmentów wyświetlacza stanami wysokimi
+    AN <= "11111110"; -- określenie działającego wyświetlacza stanem niskim
 end behavioral;
 ```
 ### 1.5 - Układ bramek logicznych
-Opis
+Na zajęciach lub w domu należało ponadto zaimplementować symulację kilku wybranych bramek logicznych. Do dyspozycji mieliśmy dwa sygnały pochodzące do przełączników oraz siedem wyjść odnoszących się do kolejno wymienionych bramek.
 ```vhdl
-Kod źródłowy
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+entity logicGates is
+    port (SW : inout STD_LOGIC_VECTOR (1 downto 0);
+          LED : out STD_LOGIC_VECTOR (6 downto 0));
+end logicGates;
+
+architecture behavioral of logicGates is
+begin
+    LED(0) <= SW(0) AND SW(1);          -- AND
+    LED(1) <= NOT (SW(0) AND SW(1));    -- NAND
+    LED(2) <= SW(0) OR SW(1);           -- OR
+    LED(3) <= NOT (SW(0) OR SW(1));     -- NOR
+    LED(4) <= SW(0) XOR SW(1);          -- XOR
+    LED(5) <= NOT (SW(0) XOR SW(1));    -- XNOR
+    LED(6) <= NOT SW(1);                -- NOT
+end behavioral;
 ```
 ### 2.1 - Licznik binarny zliczający w górę, w dół do wartości
-Opis
+Jest to zmodyfikowana wersja licznika na podstawie pracy domowej. Licznik binarny, który zlicza od wartości początkowej w dół lub w górę - w zależności od ustawionego bitu na przełączniku. Do realizacji tego zadania wykorzystałem dwa procesy. Pierwszy z nich służy do utworzenia taktowania o częstotliwości 1 [Hz], stąd wartość dzielnika częstotliwości użyta w tym procesie wynosiła binarnie `10111110101111000001111111`, co dziesiętnie możemy wyrazić jako `49999999`. Sygnał zegarowy jest prostokątną falą o 50% wypełnienia (taki sam czas aktywny i nieaktywny), wobec tego wraz z wykonaniem się kodu `50000000` razy przy stanie wysokim (liczymy bowiem od zera) "sztuczny zegar" oznaczony jako `CLK1Hz` będzie miał wartość bitu równą `1`, przy kolejnych `50000000` razach (pół sekundy) stan niski równy `0`. Drugi z procesów zajmuje się sposobem zliczania jak i samym zliczaniem. Poza procesami przypisujemy stan licznika na diody LED.
 ```vhdl
-Kod źródłowy
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity firstCounter is
+    port (CLK100MHZ : in STD_LOGIC;
+          SW : inout STD_LOGIC;
+          LED : out STD_LOGIC_VECTOR (7 downto 0));
+end firstCounter;
+
+architecture behavioral of firstCounter is
+
+signal counter : STD_LOGIC_VECTOR (7 downto 0) := "00000000"; -- wartość początkowa
+signal CLK1Hz : STD_LOGIC;                                    -- należy ją zmienić przy zliczaniu w dół
+begin
+    process(CLK100MHZ)
+    variable divider : STD_LOGIC_VECTOR (27 downto 0);
+    begin
+        if (rising_edge(CLK100MHZ)) then
+            if (divider = "10111110101111000001111111") then  -- ustawienie wartości dzielnika częstotliwości
+                CLK1Hz <= '1';
+                divider := (others => '0');
+            else
+                CLK1HZ <= '0';
+                divider := divider + 1;
+            end if;
+        end if;
+    end process;
+    process(CLK1HZ, SW)
+    begin
+        if (rising_edge(CLK1HZ)) then
+            if (SW = '0' AND  counter > "10101010") then    -- zliczanie w dół do wartości 10101010
+                counter <= counter - 1;
+            elsif (SW = '0' AND counter = "10101010") then  -- osiągnięcie wartości minimalnej
+                counter <= "11111111";                      -- powrót do ponownego odliczania
+            elsif (SW = '1' AND counter < "10101010") then  -- zliczanie w górę do wartości 10101010
+                counter <= counter + 1;
+            else                                            -- osiągnięcie wartości maksymalnej
+                counter <= "00000000";                      -- powrót do ponownego odliczania
+            end if;
+        end if;
+    end process;
+    LED <= counter;                                         -- wyświetlenie wartości licznika na diodach
+end behavioral;
+
 ```
 ### 2.2 - Licznik binarny
-Opis
+Prosty licznik binarny napisany od zera na drugich zajęciach. Do jego realizacji potrzebowaliśmy sygnału `cnt`, którego rozmiar (u mnie 27 bitów) odpowiadała za zliczanie z częstotliwością jak najbardziej zbliżoną do 1 [Hz]. Zależność ta wynika z ilorazu 100 [Mhz] tzn. częstotliwości wbudowanej i `2^(n+1)`, którego wynikiem jest 1 [Hz], a szukaną wartością `n`. Warto zaznaczyć, że w kodzie zaczęła pojawiać się instrukcja `use IEEE.STD_LOGIC_UNSIGNED.ALL;` umożliwiająca "dodawanie" jedynki do słowa binarnego.
 ```vhdl
 Kod źródłowy
 ```
