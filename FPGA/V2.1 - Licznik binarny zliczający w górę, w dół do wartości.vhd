@@ -9,7 +9,7 @@ entity firstCounter is
 end firstCounter;
 
 architecture behavioral of firstCounter is                                    
-<<<<<<< HEAD
+
 signal counter : STD_LOGIC_VECTOR (7 downto 0) := "00000000";    -- value at the beginning
                                                                 -- change if count down
 signal CLK1Hz : STD_LOGIC;
@@ -43,7 +43,7 @@ begin
     end process;
     LED <= counter;
 end behavioral;
-=======
+
 signal counter : STD_LOGIC_VECTOR (7 downto 0) := "00000000";   -- value at the beginning
                                                                 -- change if count down
 signal CLK1Hz : STD_LOGIC;
@@ -77,4 +77,3 @@ begin
     end process;
     LED <= counter;
 end behavioral;
->>>>>>> 7a9abf03f02e860e1f971ceeb0cffbe897cc9ce9
