@@ -227,7 +227,7 @@ end behavioral;
 ```
 
 ### 3.1 - Dynamiczne wyświetlanie czterech znaków
-Na trzecich zajęciach swoją pracę rozpoczęliśmy od dynamicznego wyświetlania czterech znaków - innymi słowy przemiennego wyświeltania czterech znaków na odpowiadających każdemu z nich wyświetlaczowi z tak wysoką częstotliwością aby obserwator mógł widzieć je wszystkie "naraz". Do wykonania tego zadania potrzebowaliśmy procedury konwertującej z zapisu BCD w celu uproszczenia kododwania znaków oraz procesu, który wystarczająco szybko potrafiłby "przerzucać" wyświetlanie na kolejne segmenty. Zgodnie z dobranymi wartościami każdy ze znaków wyświetlany jest przez 2,5 [ms] - częstotliwość 400 [Hz] zapewnia, że dane na wyświetlaczach będą widoczne równocześnie.
+Na trzecich zajęciach swoją pracę rozpoczęliśmy od dynamicznego wyświetlania czterech znaków - innymi słowy przemiennego wyświetlania czterech znaków na odpowiadających każdemu z nich wyświetlaczowi z tak wysoką częstotliwością aby obserwator mógł widzieć je wszystkie "naraz". Do wykonania tego zadania potrzebowaliśmy procedury konwertującej z zapisu BCD w celu uproszczenia kodowania znaków oraz procesu, który wystarczająco szybko potrafiłby "przerzucać" wyświetlanie na kolejne segmenty. Zgodnie z dobranymi wartościami każdy ze znaków wyświetlany jest przez 2,5 [ms] - częstotliwość 400 [Hz] zapewnia, że dane na wyświetlaczach będą widoczne równocześnie.
 ```vhdl
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -539,7 +539,7 @@ loop:
 ```
 
 ### 1.3 - Migotanie diody z częstotliwością 1 Hz
-Trzeci z programów umożliwiał już dostrzeżenie zmiany stanu diody. Fragment "main" pozostał taki sam jednak do "wydłużenia" oczekiwania wewnątrz etykiety wait dodałem zagnieżdżone pętle wykorzystując instrukcje `DJNZ`.
+Trzeci z programów umożliwiał już dostrzeżenie zmiany stanu diody. Fragment `main` pozostał taki sam jednak do "wydłużenia" oczekiwania wewnątrz etykiety `wait` dodałem zagnieżdżone pętle wykorzystując instrukcje `DJNZ`.
 ```asm
 org 0x00;
     JMP main; bezwarunkowy skok pod etykietę "main"
@@ -581,12 +581,12 @@ init:
 main:
     JMP main;
 irq:
-    CPL P1.1; odwórcenie bitu, czyli stanu diody
+    CPL P1.1; odwrócenie bitu, czyli stanu diody
     RETI; powrót z procedury obsługi przerwania
 ```
 
 ### 2.2 - Migotanie diody na podstawie przerwań z zadaną częstotliwością
-Działanie programu analogiczne do przykładu 1.3 ulepszone o obsługę przerwań. W tym programie należało jednak wymyślić sposób w jaki sposób dobrać wartości `TL0`, `TH0` oraz `R0`, aby częstotliwość mrugania diody wynosiła 1 [Hz]. W moim przypadku procedura obliczeń była następująca: dioda ma się świecić przez 0,5 [s] oraz przez takim sam nie świecić. Wobec tego: `0,5 [s] / x = 1,2 [us]`. Przekształcając względem x: `x = 0,5 / (1,2 * 10 ^ (-6)) = 416 666 ` cykli. Wybieram liczbę najbardziej zbliżoną do `416 666`, której dzielnik nie jest większy niż `255`, bo na taką wartość pozwala nam rejest. W moim przypadku jest to liczba `416 664`, zaś dzieląc ją przez `24` otrzymujemy `17 361`. Od maksymalnej liczby odejmuję umieszczoną w rejestrze wartość, czyli: `65 535 - 17 361 = 48 174`. Pozostaje zamienić ją na postać szesnastkową tj. `BC2E`. `BC` wpisujemy do `TH0`, zaś `2E` do `TL0`. Implementacja tego zadania została umieszczona poniżej:
+Działanie programu analogiczne do przykładu 1.3 ulepszone o obsługę przerwań. W tym programie należało jednak wymyślić sposób w jaki sposób dobrać wartości `TL0`, `TH0` oraz `R0`, aby częstotliwość mrugania diody wynosiła 1 [Hz]. W moim przypadku procedura obliczeń była następująca: dioda ma się świecić przez 0,5 [s] oraz przez takim sam nie świecić. Wobec tego: `0,5 [s] / x = 1,2 [us]`. Przekształcając względem x: `x = 0,5 / (1,2 * 10 ^ (-6)) = 416 666 ` cykli. Wybieram liczbę najbardziej zbliżoną do `416 666`, której dzielnik nie jest większy niż `255`, bo na taką wartość pozwala nam rejestr. W moim przypadku jest to liczba `416 664`, zaś dzieląc ją przez `24` otrzymujemy `17 361`. Od maksymalnej liczby odejmuję umieszczoną w rejestrze wartość, czyli: `65 535 - 17 361 = 48 174`. Pozostaje zamienić ją na postać szesnastkową tj. `BC2E`. `BC` wpisujemy do `TH0`, zaś `2E` do `TL0`. Implementacja tego zadania została umieszczona poniżej:
 ```asm
 org 0x00;
     JMP init;
@@ -607,7 +607,7 @@ irq:
     MOV TH0, #0xBC; ustawienie wartości bardziej znaczącego bajta timera
     MOV TL0, #0x2E; ustawienie wartości mniej znaczącego bajta timera
     DJNZ R0, end; "dekrementuj R0 i skocz do "end" jeśli wynik różny od zera" (2 cykle)
-    CPL P1.1; odwórcenie bitu, czyli stanu diody
+    CPL P1.1; odwrócenie bitu, czyli stanu diody
     MOV R0, #24; wpisanie do rejestru R0 wartości 24 (dec) - adresowanie natychmiastowe (#)
 end:
     RETI; powrót z procedury obsługi przerwania
@@ -615,7 +615,7 @@ end:
 ```
 
 ### 2.3 - Wypełnienie PWM o współczynniku jednej dziesiątej
-Współczynnik wypełnienia wynosi 10%, co oznacza, że przez 90% dioda nie świeci. W labolatorium efekt był zauważalny poniżej 20% lub przy odizolowaniu światła poprzez rzucanie cienia na moduł z diodami.
+Współczynnik wypełnienia wynosi 10%, co oznacza, że przez 90% dioda nie świeci. W laboratorium efekt był zauważalny poniżej 20% lub przy odizolowaniu światła poprzez rzucanie cienia na moduł z diodami.
 ```asm
 org 0x00;
     JMP init

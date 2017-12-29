@@ -17,7 +17,7 @@ irq:
     MOV TH0, #0xBC; ustawienie wartości bardziej znaczącego bajta timera
     MOV TL0, #0x2E; ustawienie wartości mniej znaczącego bajta timera
     DJNZ R0, end; "dekrementuj R0 i skocz do "end" jeśli wynik różny od zera" (2 cykle)
-    CPL P1.1; odwórcenie bitu, czyli stanu diody
+    CPL P1.1; odwrócenie bitu, czyli stanu diody
     MOV R0, #24; wpisanie do rejestru R0 wartości 24 (dec) - adresowanie natychmiastowe (#)
 end:
     RETI; powrót z procedury obsługi przerwania

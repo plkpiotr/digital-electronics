@@ -13,5 +13,5 @@ init:
 main:
     JMP main;
 irq:
-    CPL P1.1; odwórcenie bitu, czyli stanu diody
+    CPL P1.1; odwrócenie bitu, czyli stanu diody
     RETI; powrót z procedury obsługi przerwania
