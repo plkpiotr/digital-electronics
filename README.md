@@ -674,7 +674,7 @@ end;
 
 ```
 
-### 3.2 - Konfiguracja PS z wysłaniem znaku w oparciu o przerwania
+### 3.2 - Konfiguracja portu szeregowego z wysłaniem znaku w oparciu o przerwania
 Chcąc wyjaśnić dobór wartości `TH1` i `TL1` w tym przykładzie i programie 3.1 muszę nadmienić, że wykorzystałem pierwszy tryb asynchroniczny zapewniający transmisję w oparciu o wzór: `F = ((2 ^ SMOD) * (FOSC)) / (32 * 12 * (256 - TH1))`.
 ```asm
 org 0x00;
