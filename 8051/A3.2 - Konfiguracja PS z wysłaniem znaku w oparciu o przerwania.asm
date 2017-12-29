@@ -4,25 +4,25 @@ org 0x23;
     JMP irq;
 org 0x30;
 init:
-    SETB EA;
-    SETB ES;
-    SETB REN;
-    MOV PCON, #0x80;
-    MOV SCON, #0x50;
-    MOV TMOD, #0x20;
-    MOV TH1, #0xF5; zgodnie ze wzorem 245
-    MOV TL1, #0xF5;
-    SETB TR1;
-    CLR RI;
-    SETB TI;
+    MOV PCON, #0x80; ustawienie SMOD (najstarszego bitu PCON) na wartość 1
+    MOV SCON, #0x50; ustawienie REN = 1 - uaktywnienie odbiornika
+    MOV TMOD, #0x20; ustawienie drugiego trybu timera - zegara z przeładowaniem
+    MOV TH1, #0xF5; prędkość transmisji 4800 [bit/sek]
+    MOV TL1, #0xF5; prędkość transmisji 4800 [bit/sek]
+    SETB TR1; uruchomienie licznika
+    SETB EA; zezwolenie na globalne przerwania
+    SETB ES; zezwolenie na przerwania z portu szeregowego
+    SETB REN; uaktywnienie odbiornika
+    CLR RI; wyczyszczenie znacznika przerwania odbiornika
+    SETB TI; ustawienie znacznika przerwania nadajnika - programowe wywołanie pierwszego przerwania
 main:
-    JMP main;
+    JMP main; ponowne wykonanie głównego programu
 irq:
-    JNB RI, ZERO;
-    CLR RI;
-ZERO:
-    JNB TI, irq;
-    CLR TI;
-    MOV SBUF, #0x40; znak @
-    RETI;
+    JNB RI, zero; skocz do etykiety "zero" jeśli bit zerowy - sprawdzenie rodzaju przerwania
+    CLR RI; wyczyszczenie znacznika przerwania odbiornika
+zero:
+    JNB TI, irq; skocz do etykiety "irq" jeśli bit zerowy
+    CLR TI; wyczyszczenie znacznika przerwania nadajnika
+    MOV SBUF, #0x40; wysłanie kodu ASCII znaku @
+    RETI; powrót z procedury obsługi przerwania
 end;
