@@ -789,11 +789,11 @@ stop:
     RETI;
 end;
 ```
-  
+## Dodatek - STM32
 Gwoli uproszczenia kodu dla płytki Nucleo STM32F411 wszystkie potrzebne modyfikacje umieszczałem wewnątrz plików `main.c` i to właśnie ich fragmenty, odpowiadające za pożądane funkcjonalności umieściłem w sprawozdaniu.  
 
 ### 4.1 - Plik główny dla wyświetlacza
-Poniższy fragment pliku `main.c` został wzbogacony (po skonfigurowaniu i wygenerowaniu kodu przez platformę STM32CubeMX) o prywatne zmienne określające stan licznika, cztery kolejno wyświetlane cyfry, funkcję konwertującą cyfrę na aktywowane segmenty oraz funkcję odpowiadającą za obsługę licznika. Sam koncept jest identyczny jak dla programu 3.3 z I części sprawozdania dotyczącej języka VHDL.
+Poniższy fragment pliku `main.c` został wzbogacony (po skonfigurowaniu i wygenerowaniu kodu przez platformę STM32CubeMX) o kolejno w kodzie: zmienne określające stan licznika i cztery kolejno wyświetlane cyfry, funkcję konwertującą cyfrę na aktywowane segmenty, funkcję zmieniającą wyświetlacz co 3 [ms], a także funkcję odpowiadającą za obsługę licznika (inkrementowanie wartości). Sam koncept jest identyczny jak dla programu 3.3 z I części sprawozdania dotyczącej języka VHDL. Wykorzystany został timer nr 9.
 ```c
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -1041,7 +1041,7 @@ int main(void)
 ```
 
 ### 4.2 - Plik główny dla portu szeregowego
-Opis
+Poniższy fragment pliku `main.c` został wzbogacony (po skonfigurowaniu i wygenerowaniu kodu przez platformę STM32CubeMX) o zmienne umożliwiające transmisję danych. W ćwiczeniu wykorzystano timer nr 9 oraz nadawanie danych z UART za pomocą DMA (Direct Memory Access) tj. bezpośredniego dostępu do pamięci.
 ```c
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -1062,7 +1062,10 @@ DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+int volume = 0;
+uint8_t posted[9];
+uint8_t received;
+uint16_t size = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -1075,7 +1078,14 @@ static void MX_ADC1_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+	volume = HAL_ADC_GetValue(&hadc1);
+}
 
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	size = sprintf( (char * ) posted,  "1, %d", volume);
+	HAL_UART_Transmit_DMA(&huart2, posted, size);
+}
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -1113,7 +1123,8 @@ int main(void)
   MX_ADC1_Init();
 
   /* USER CODE BEGIN 2 */
-
+  HAL_ADC_Start_IT(&hadc1);
+  HAL_UART_Receive_DMA(&huart2, &received, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */

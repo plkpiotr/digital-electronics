@@ -55,7 +55,10 @@ DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+int volume = 0;
+uint8_t posted[9];
+uint8_t received;
+uint16_t size = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -68,7 +71,14 @@ static void MX_ADC1_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
+	volume = HAL_ADC_GetValue(&hadc1);
+}
 
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	size = sprintf( (char * ) posted,  "1, %d", volume);
+	HAL_UART_Transmit_DMA(&huart2, posted, size);
+}
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -106,7 +116,8 @@ int main(void)
   MX_ADC1_Init();
 
   /* USER CODE BEGIN 2 */
-
+  HAL_ADC_Start_IT(&hadc1);
+  HAL_UART_Receive_DMA(&huart2, &received, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
