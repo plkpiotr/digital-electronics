@@ -564,7 +564,7 @@ loop3:
 ```
 
 ### 2.1 - Migotanie diody na podstawie przerwań
-Działanie programu analogiczne do przykładu 1.2 ulepszone o obsługę przerwań.
+Działanie programu analogiczne do przykładu 1.2 wzbogacone o obsługę przerwań.
 ```asm
 org 0x00;
     JMP init;
@@ -648,37 +648,484 @@ end:
 ```
 
 ### 3.1 - Konfiguracja portu szeregowego z wysyłaniem znaku
-Opis
+Zgodnie z poleceniem program ten powinien wysyłać znak przy prędkości transmisji równej 4800 [bit/sek] oraz dla ustawienia SMOD równego 1. Poniżej zaimplementowałem wysyłanie wielkiej litery A bez mechanizmu przerwań, a przy udziale pętli zagnieżdżonych.
 ```asm
-Kod źródłowy
+org 0x00;
+    JMP init;
+org 0x30;
+init:
+    MOV PCON, #0x80; ustawienie SMOD (najstarszego bitu PCON) na wartość 1
+    MOV SCON, #0x50; ustawienie REN = 1 - uaktywnienie odbiornika
+    MOV TMOD, #0x20; ustawienie drugiego trybu timera - zegara z przeładowaniem
+    MOV TH1, #0xF5; prędkość transmisji 4800 [bit/sek]
+    MOV TL1, #0xF5; prędkość transmisji 4800 [bit/sek]
+    SETB TR1; uruchomienie licznika
+main:
+    MOV SBUF,#0x41; wysłanie kodu ASCII litery A
+    MOV R1, #255; poniżej pętle zagnieżdżone
+loop1:
+    MOV R0, #255;
+loop2:
+    DJNZ R0, loop2;
+    DJNZ R1, loop1;
+    JMP main;
+RET; powrót z procedury (podprogramu)
+end;
+
 ```
 
 ### 3.2 - Konfiguracja PS z wysłaniem znaku w oparciu o przerwania
-Opis
+Chcąc wyjaśnić dobór wartości `TH1` i `TL1` w tym przykładzie i programie 3.1 muszę nadmienić, że wykorzystałem pierwszy tryb asynchroniczny zapewniający transmisję w oparciu o wzór: `F = ((2 ^ SMOD) * (FOSC)) / (32 * 12 * (256 - TH1))`.
 ```asm
-Kod źródłowy
+org 0x00;
+    JMP init;
+org 0x23;
+    JMP irq;
+org 0x30;
+init:
+    MOV PCON, #0x80; ustawienie SMOD (najstarszego bitu PCON) na wartość 1
+    MOV SCON, #0x50; ustawienie REN = 1 - uaktywnienie odbiornika
+    MOV TMOD, #0x20; ustawienie drugiego trybu timera - zegara z przeładowaniem
+    MOV TH1, #0xF5; prędkość transmisji 4800 [bit/sek]
+    MOV TL1, #0xF5; prędkość transmisji 4800 [bit/sek]
+    SETB TR1; uruchomienie licznika
+    SETB EA; zezwolenie na globalne przerwania
+    SETB ES; zezwolenie na przerwania z portu szeregowego
+    SETB REN; uaktywnienie odbiornika
+    CLR RI; wyczyszczenie znacznika przerwania odbiornika
+    SETB TI; ustawienie znacznika przerwania nadajnika - programowe wywołanie pierwszego przerwania
+main:
+    JMP main; ponowne wykonanie głównego programu
+irq:
+    JNB RI, zero; skocz do etykiety "zero" jeśli bit zerowy - sprawdzenie rodzaju przerwania
+    CLR RI; wyczyszczenie znacznika przerwania odbiornika
+zero:
+    JNB TI, irq; skocz do etykiety "irq" jeśli bit zerowy
+    CLR TI; wyczyszczenie znacznika przerwania nadajnika
+    MOV SBUF, #0x40; wysłanie kodu ASCII znaku @
+    RETI; powrót z procedury obsługi przerwania
+end;
 ```
 
 ### 3.3 - Echo
-Opis
+Działanie programu polega na wysłaniu znaku z klawiatury i odbiorze go przez mikrokontroler.
 ```asm
-Kod źródłowy
+org 0x00;
+    JMP init;
+org 0x23;
+    JMP irq;
+org 0x30;
+init:
+    MOV PCON, #0x80; ustawienie SMOD (najstarszego bitu PCON) na wartość 1
+    MOV SCON, #0x50; ustawienie REN = 1 - uaktywnienie odbiornika
+    MOV TMOD, #0x20; ustawienie drugiego trybu timera - zegara z przeładowaniem
+    MOV TH1, #0xF5; prędkość transmisji 4800 [bit/sek]
+    MOV TL1, #0xF5; prędkość transmisji 4800 [bit/sek]
+    SETB TR1; uruchomienie licznika
+    SETB EA; zezwolenie na globalne przerwania
+    SETB ES; zezwolenie na przerwania z portu szeregowego
+    SETB REN; uaktywnienie odbiornika
+    CLR RI; wyczyszczenie znacznika przerwania odbiornika
+    SETB TI; ustawienie znacznika przerwania nadajnika - programowe wywołanie pierwszego przerwania
+main:
+    JMP main; ponowne wykonanie głównego programu
+irq:
+    JNB RI, zero; skocz do etykiety "zero" jeśli bit zerowy - sprawdzenie rodzaju przerwania
+    CLR RI; wyczyszczenie znacznika przerwania odbiornika
+    MOV SBUF, A; wysłanie kodu ASCII wpisanego znaku
+    MOV A, SBUF; odbiór zapamiętanego kodu ASCII przez mikrokontroler
+zero:
+    JNB TI, irq; skocz do etykiety "irq" jeśli bit zerowy
+    CLR TI; wyczyszczenie znacznika przerwania nadajnika
+    RETI; powrót z procedury obsługi przerwania
+end;
 ```
 
 ### 3.4 - Echo wybiórcze
-Opis
+W odniesieniu do przykładu 3.3 program został wzbogacony o filtrowanie znaków tzn. transmisja danych w obie strony przebiega wyłącznie dla małych liter łacińskiego alfabetu [a-z].
 ```asm
-Kod źródłowy
+org 0x00;
+    JMP init;
+org 0x23;
+    JMP irq;
+org 0x30;
+init:
+    MOV PCON, #0x80; ustawienie SMOD (najstarszego bitu PCON) na wartość 1
+    MOV SCON, #0x50; ustawienie REN = 1 - uaktywnienie odbiornika
+    MOV TMOD, #0x20; ustawienie drugiego trybu timera - zegara z przeładowaniem
+    MOV TH1, #0xF5; prędkość transmisji 4800 [bit/sek]
+    MOV TL1, #0xF5; prędkość transmisji 4800 [bit/sek]
+    SETB TR1; uruchomienie licznika
+    SETB EA; zezwolenie na globalne przerwania
+    SETB ES; zezwolenie na przerwania z portu szeregowego
+    SETB REN; uaktywnienie odbiornika
+    CLR RI; wyczyszczenie znacznika przerwania odbiornika
+    CLR TI; wyczyszczenie znacznika przerwania nadajnika
+main:
+    JMP main;
+irq:
+    JB RI, range_a; skocz do "range_a" gdy bit ustawiony
+    CLR TI;
+    RETI;
+range_a:
+    CLR RI; wyczyszczenie znacznika przerwania odbiornika
+    MOV A, SBUF; odbiór zapamiętanego kodu ASCII przez mikrokontroler
+    CJNE A, #0x61, range_z; porównaj argumenty A i "a" i skocz do "range_z" gdy nie są równe
+    MOV SBUF, A; wysłanie kodu ASCII wpisanego znaku
+    CLR TI;
+    RETI;
+range_z:
+    JC stop; skocz do "stop" jeśli jest przeniesienie
+    CJNE A, #0x7A, exit; porównaj argumenty A i "z" i skocz do "exit" gdy nie są równe
+    MOV SBUF, A; wysłanie kodu ASCII wpisanego znaku
+    CLR TI;
+    RETI;
+exit:
+    JNC stop; skocz do "stop" jeśli nie ma przeniesienia
+    CLR TI;
+    MOV SBUF, A; wysłanie kodu ASCII wpisanego znaku
+    RETI;
+stop:
+    RETI;
+end;
+```
+  
+Gwoli uproszczenia kodu dla płytki Nucleo STM32F411 wszystkie potrzebne modyfikacje umieszczałem wewnątrz plików `main.c` i to właśnie ich fragmenty, odpowiadające za pożądane funkcjonalności umieściłem w sprawozdaniu.  
+
+### 4.1 - Plik główny dla wyświetlacza
+Poniższy fragment pliku `main.c` został wzbogacony (po skonfigurowaniu i wygenerowaniu kodu przez platformę STM32CubeMX) o prywatne zmienne określające stan licznika, cztery kolejno wyświetlane cyfry, funkcję konwertującą cyfrę na aktywowane segmenty oraz funkcję odpowiadającą za obsługę licznika. Sam koncept jest identyczny jak dla programu 3.3 z I części sprawozdania dotyczącej języka VHDL.
+```c
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+#include "stm32f4xx_hal.h"
+
+/* USER CODE BEGIN Includes */
+
+/* USER CODE END Includes */
+
+/* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim9;
+
+/* USER CODE BEGIN PV */
+/* Private variables ---------------------------------------------------------*/
+int counter0 = 0;
+int counter1 = 0;
+int counter2 = 0;
+int counter3 = 0;
+int counter4 = 0;
+int number1 = 0;
+int number2 = 0;
+int number3 = 0;
+int number4 = 0;
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_TIM9_Init(void);
+
+/* USER CODE BEGIN PFP */
+/* Private function prototypes -----------------------------------------------*/
+void convert(int number) {
+	switch(number) {
+	case 0:
+		HAL_GPIO_WritePin(SEG_A_GPIO_Port, SEG_A_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_B_GPIO_Port, SEG_B_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_C_GPIO_Port, SEG_C_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_D_GPIO_Port, SEG_D_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_E_GPIO_Port, SEG_E_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_F_GPIO_Port, SEG_F_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_G_GPIO_Port, SEG_G_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(DP_GPIO_Port, DP_Pin, GPIO_PIN_RESET);
+		break;
+	case 1:
+		HAL_GPIO_WritePin(SEG_A_GPIO_Port, SEG_A_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_B_GPIO_Port, SEG_B_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_C_GPIO_Port, SEG_C_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_D_GPIO_Port, SEG_D_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_E_GPIO_Port, SEG_E_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_F_GPIO_Port, SEG_F_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_G_GPIO_Port, SEG_G_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(DP_GPIO_Port, DP_Pin, GPIO_PIN_RESET);
+		break;
+	case 2:
+		HAL_GPIO_WritePin(SEG_A_GPIO_Port, SEG_A_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_B_GPIO_Port, SEG_B_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_C_GPIO_Port, SEG_C_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_D_GPIO_Port, SEG_D_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_E_GPIO_Port, SEG_E_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_F_GPIO_Port, SEG_F_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_G_GPIO_Port, SEG_G_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(DP_GPIO_Port, DP_Pin, GPIO_PIN_RESET);
+		break;
+	case 3:
+		HAL_GPIO_WritePin(SEG_A_GPIO_Port, SEG_A_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_B_GPIO_Port, SEG_B_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_C_GPIO_Port, SEG_C_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_D_GPIO_Port, SEG_D_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_E_GPIO_Port, SEG_E_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_F_GPIO_Port, SEG_F_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_G_GPIO_Port, SEG_G_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(DP_GPIO_Port, DP_Pin, GPIO_PIN_RESET);
+		break;
+	case 4:
+		HAL_GPIO_WritePin(SEG_A_GPIO_Port, SEG_A_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_B_GPIO_Port, SEG_B_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_C_GPIO_Port, SEG_C_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_D_GPIO_Port, SEG_D_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_E_GPIO_Port, SEG_E_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_F_GPIO_Port, SEG_F_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_G_GPIO_Port, SEG_G_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(DP_GPIO_Port, DP_Pin, GPIO_PIN_RESET);
+		break;
+	case 5:
+		HAL_GPIO_WritePin(SEG_A_GPIO_Port, SEG_A_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_B_GPIO_Port, SEG_B_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_C_GPIO_Port, SEG_C_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_D_GPIO_Port, SEG_D_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_E_GPIO_Port, SEG_E_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_F_GPIO_Port, SEG_F_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_G_GPIO_Port, SEG_G_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(DP_GPIO_Port, DP_Pin, GPIO_PIN_RESET);
+		break;
+	case 6:
+		HAL_GPIO_WritePin(SEG_A_GPIO_Port, SEG_A_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_B_GPIO_Port, SEG_B_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_C_GPIO_Port, SEG_C_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_D_GPIO_Port, SEG_D_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_E_GPIO_Port, SEG_E_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_F_GPIO_Port, SEG_F_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_G_GPIO_Port, SEG_G_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(DP_GPIO_Port, DP_Pin, GPIO_PIN_RESET);
+		break;
+	case 7:
+		HAL_GPIO_WritePin(SEG_A_GPIO_Port, SEG_A_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_B_GPIO_Port, SEG_B_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_C_GPIO_Port, SEG_C_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_D_GPIO_Port, SEG_D_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_E_GPIO_Port, SEG_E_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_F_GPIO_Port, SEG_F_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_G_GPIO_Port, SEG_G_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(DP_GPIO_Port, DP_Pin, GPIO_PIN_RESET);
+		break;
+	case 8:
+		HAL_GPIO_WritePin(SEG_A_GPIO_Port, SEG_A_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_B_GPIO_Port, SEG_B_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_C_GPIO_Port, SEG_C_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_D_GPIO_Port, SEG_D_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_E_GPIO_Port, SEG_E_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_F_GPIO_Port, SEG_F_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_G_GPIO_Port, SEG_G_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(DP_GPIO_Port, DP_Pin, GPIO_PIN_RESET);
+		break;
+	case 9:
+		HAL_GPIO_WritePin(SEG_A_GPIO_Port, SEG_A_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_B_GPIO_Port, SEG_B_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_C_GPIO_Port, SEG_C_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_D_GPIO_Port, SEG_D_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_E_GPIO_Port, SEG_E_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(SEG_F_GPIO_Port, SEG_F_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(SEG_G_GPIO_Port, SEG_G_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(DP_GPIO_Port, DP_Pin, GPIO_PIN_RESET);
+		break;
+	}
+}
+
+void HAL_SYSTICK_Callback() {
+	counter0++;
+	if (counter0 < 3) {
+		HAL_GPIO_WritePin(COM1_GPIO_Port, COM1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(COM2_GPIO_Port, COM2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COM3_GPIO_Port, COM3_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COM4_GPIO_Port, COM4_Pin, GPIO_PIN_SET);
+		convert(number1);
+	} else if (counter0 < 6) {
+		HAL_GPIO_WritePin(COM1_GPIO_Port, COM1_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COM2_GPIO_Port, COM2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(COM3_GPIO_Port, COM3_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COM4_GPIO_Port, COM4_Pin, GPIO_PIN_SET);
+		convert(number2);
+	} else if (counter0 < 9) {
+		HAL_GPIO_WritePin(COM1_GPIO_Port, COM1_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COM2_GPIO_Port, COM2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COM3_GPIO_Port, COM3_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(COM4_GPIO_Port, COM4_Pin, GPIO_PIN_SET);
+		convert(number3);
+	} else if (counter0 < 12) {
+		HAL_GPIO_WritePin(COM1_GPIO_Port, COM1_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COM2_GPIO_Port, COM2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COM3_GPIO_Port, COM3_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COM4_GPIO_Port, COM4_Pin, GPIO_PIN_RESET);
+		convert(number4);
+	} else
+		counter0 = 0;
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	if (htim->Instance == TIM9) {
+		number1++;
+		if (number1 == 10)
+			number1 = 0;
+		counter2++;
+		if (counter2 == 0) {
+			counter2 = 0;
+			number2++;
+			if (number2 == 6)
+				number2 = 0;
+		}
+		counter3++;
+		if (counter3 == 60) {
+			counter3 = 0;
+			number3++;
+			if (number3 == 10)
+				number3 = 0;
+		}
+		counter4++;
+		if (counter4 == 600) {
+			counter4 = 0;
+			number4++;
+			if (number4 == 6)
+				number4 = 0;
+		}
+	}
+}
+/* USER CODE END PFP */
+
+/* USER CODE BEGIN 0 */
+
+/* USER CODE END 0 */
+
+int main(void)
+{
+
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration----------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_TIM9_Init();
+
+  /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start_IT(&htim9);
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+  /* USER CODE END WHILE */
+
+  /* USER CODE BEGIN 3 */
+
+  }
+  /* USER CODE END 3 */
+
+}
 ```
 
-### 4.1 - Przykładowy program zapalający wybrane diody
+### 4.2 - Plik główny dla portu szeregowego
 Opis
-```asm
-Kod źródłowy
-```
+```c
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+#include "stm32f4xx_hal.h"
 
-### 4.2 - Przykładowy program zapalający wybrane diody
-Opis
-```asm
-Kod źródłowy
+/* USER CODE BEGIN Includes */
+
+/* USER CODE END Includes */
+
+/* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+
+TIM_HandleTypeDef htim9;
+
+UART_HandleTypeDef huart2;
+DMA_HandleTypeDef hdma_usart2_tx;
+DMA_HandleTypeDef hdma_usart2_rx;
+
+/* USER CODE BEGIN PV */
+/* Private variables ---------------------------------------------------------*/
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
+static void MX_TIM9_Init(void);
+static void MX_USART2_UART_Init(void);
+static void MX_ADC1_Init(void);
+
+/* USER CODE BEGIN PFP */
+/* Private function prototypes -----------------------------------------------*/
+
+/* USER CODE END PFP */
+
+/* USER CODE BEGIN 0 */
+
+/* USER CODE END 0 */
+
+int main(void)
+{
+
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration----------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_DMA_Init();
+  MX_TIM9_Init();
+  MX_USART2_UART_Init();
+  MX_ADC1_Init();
+
+  /* USER CODE BEGIN 2 */
+
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+  /* USER CODE END WHILE */
+
+  /* USER CODE BEGIN 3 */
+
+  }
+  /* USER CODE END 3 */
+
+}
 ```
