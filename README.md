@@ -1,7 +1,5 @@
-# Sprawozdanie z elektroniki cyfrowej - część I
+# Samouczek z elektroniki - część I
 ## Programowanie FPGA
-
-## Piotr Pałka - poniedziałek 9:30, podgrupa 2
 Dokument ten zawiera podsumowanie zajęć elektroniki cyfrowej z części dotyczącej języka VHDL. Każdy z umieszczonych niżej programów został opatrzony nagłówkiem składającym się kolejno z: numeru zajęć odnoszących się do bezpośrednio programowalnej macierzy bramek, numeru określającego kolejność wykonania programu na zajęciach oraz jego tytuł. Każdy z programów zawiera krótki opis zawierający wnioski i przemyślenia oraz tam gdzie było to niezbędne zamieściłem komentarze bezpośrednio w kodzie.
 
 ### 1.1 - Konfiguracja wstępna
@@ -140,7 +138,7 @@ end behavioral;
 ```
 
 ### 2.2 - Licznik binarny
-Prosty licznik binarny napisany od zera na drugich zajęciach. Do jego realizacji potrzebowaliśmy sygnału `cnt`, którego rozmiar (u mnie 27 bitów) odpowiadała za zliczanie z częstotliwością jak najbardziej zbliżoną do 1 [Hz]. Zależność ta wynika z ilorazu 100 [Mhz] tzn. częstotliwości wbudowanej i `2^(n+1)`, którego wynikiem jest 1 [Hz], a szukaną wartością `n`. Dzięki temu ostatni z wyświetlanych bitów będzie świecił z pożądaną częstotliwością. Warto zaznaczyć, że w kodzie zaczęła pojawiać się instrukcja `use IEEE.STD_LOGIC_UNSIGNED.ALL;` umożliwiająca "dodawanie" jedynki do słowa binarnego.
+Prosty licznik binarny napisany od zera na drugich zajęciach. Do jego realizacji potrzebowaliśmy sygnału `cnt`, którego rozmiar (u mnie 27 bitów) odpowiadał za zliczanie z częstotliwością jak najbardziej zbliżoną do 1 [Hz]. Zależność ta wynika z ilorazu 100 [Mhz] tzn. częstotliwości wbudowanej i `2^(n+1)`, którego wynikiem jest 1 [Hz], a szukaną wartością `n`. Dzięki temu ostatni z wyświetlanych bitów będzie świecił z pożądaną częstotliwością. Warto zaznaczyć, że w kodzie zaczęła pojawiać się instrukcja `use IEEE.STD_LOGIC_UNSIGNED.ALL;` umożliwiająca "dodawanie" jedynki do słowa binarnego.
 ```vhdl
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -494,10 +492,8 @@ begin
 
 end behavioral;
 ```
-# Sprawozdanie z elektroniki cyfrowej - część II
+# Samouczek z elektroniki - część II
 ## Programowanie mikrokontrolerów
-
-## Piotr Pałka - poniedziałek 9:30, podgrupa 2
 Dokument ten zawiera podsumowanie zajęć elektroniki cyfrowej z części dotyczącej języka Assembly oraz języka C. Każdy z umieszczonych niżej programów został opatrzony nagłówkiem składającym się kolejno z: numeru zajęć odnoszących się do mikrokontrolera 8051 lub STM32, numeru określającego kolejność wykonania programu na zajęciach oraz jego tytuł. Każdy z programów zawiera krótki opis zawierający wnioski i przemyślenia oraz tam gdzie było to niezbędne zamieściłem komentarze bezpośrednio w kodzie.
 
 ### 1.1 - Przykładowy program zapalający wybrane diody
