@@ -48,7 +48,7 @@ end behavioral;
 ```
 
 ### 1.4 - Wyświetlenie jedynki
-Kolejne ćwiczenie polegało na wyświetleniu cyfry zgodnej z numerem stanowiska. W moim przypadku była to cyfra 1. W tym celu należało wykorzystać dwa słowa: `AN` oraz `SEG`, pamiętając o uprzednim odkomentowaniu ich składowych w pliku `.xdc`. `AN` mówi nam którego lub których z ośmiu wyświetlaczy chcemy użyć (stan niski, czyli `0` określa pracę wyświetlacza), zaś `SEG` definiowało nam, który lub które segmenty wyświetlacza mają być aktywne (tutaj stan wysoki, czy `1` definiowało pracę segmentu).
+Kolejne ćwiczenie polegało na wyświetleniu cyfry zgodnej z numerem stanowiska. W moim przypadku była to cyfra 1. W tym celu należało wykorzystać dwa słowa: `AN` oraz `SEG`, pamiętając o uprzednim odkomentowaniu ich składowych w pliku `.xdc`. `AN` mówi nam którego lub których z ośmiu wyświetlaczy chcemy użyć (stan niski, czyli `0` określa pracę wyświetlacza), zaś `SEG` definiowało nam, który lub które segmenty wyświetlacza mają być aktywne (tutaj stan wysoki, czyli `1` definiowało pracę segmentu).
 ```vhdl
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
